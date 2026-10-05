@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
-import { ArrowRight, AudioWaveform, Disc3, Library, Link as LinkIcon, Share, SlidersVertical, Sparkles } from "lucide-react";
+import { ArrowRight, AudioWaveform, Disc3, Gauge, Grid3x3, Library, Share, SlidersVertical, Sparkles } from "lucide-react";
 import { LiveSpectrum } from "@/components/LiveSpectrum";
 import { PROFILES } from "@/lib/audio/presets";
 import { useSettings } from "@/store/settings";
@@ -14,7 +14,8 @@ const TILES = [
   { href: "/eq", title: "Equalizer & Modes", desc: "10-band EQ, presets, Bass, 3D, Night, Hall modes", icon: SlidersVertical, hue: "from-violet/30 to-cyan/10" },
   { href: "/visualizer", title: "Visualizer", desc: "Fullscreen reactive visuals, mic & tab input", icon: Sparkles, hue: "from-lime/25 to-cyan/10" },
   { href: "/library", title: "Library", desc: "Your offline collection, stored on this device", icon: Library, hue: "from-amber/25 to-pink/10" },
-  { href: "/youtube", title: "YouTube Grab", desc: "Extract audio from a link (≤ 6 min, online only)", icon: LinkIcon, hue: "from-pink/30 to-amber/10" },
+  { href: "/pads", title: "Pads & Sequencer", desc: "Drum pads, 16-step sequencer, swing, bounce to Studio", icon: Grid3x3, hue: "from-pink/30 to-amber/10" },
+  { href: "/tools", title: "Audio Tools", desc: "Tuner, metronome, tap tempo, tone generator, level meter", icon: Gauge, hue: "from-cyan/25 to-lime/10" },
 ];
 
 export default function Home() {

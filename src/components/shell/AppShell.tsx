@@ -68,7 +68,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             exit={{ y: -40, opacity: 0 }}
             className="glass pt-safe fixed top-2 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-full px-4 py-1.5 text-xs"
           >
-            <WifiOff className="h-3.5 w-3.5 text-amber" /> Offline — everything except YouTube grab works
+            <WifiOff className="h-3.5 w-3.5 text-amber" /> Offline mode — everything still works
           </motion.div>
         )}
         {installEvt && path === "/" && (

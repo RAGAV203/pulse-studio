@@ -1,9 +1,8 @@
 "use client";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { AudioWaveform, Download, FileAudio, Link as LinkIcon, Loader2, Pause, Pencil, Play, Search, Trash2, Upload } from "lucide-react";
+import { AudioWaveform, Download, FileAudio, Loader2, Pause, Pencil, Play, Search, Trash2, Upload } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { PeakStrip } from "@/components/PeakStrip";
 import { formatTime } from "@/lib/audio/dsp";
@@ -12,7 +11,7 @@ import { importBlob } from "@/lib/library";
 import { loadToDeck } from "@/store/decks";
 import { usePlayer } from "@/store/player";
 
-const SOURCE_LABEL = { file: "Import", youtube: "YouTube", studio: "Studio", recording: "Recording" } as const;
+const SOURCE_LABEL: Record<string, string> = { file: "Import", studio: "Studio", recording: "Recording", pads: "Pads" };
 
 export default function LibraryPage() {
   const { tracks, loaded, currentId, playing, play, toggle, remove, refresh } = usePlayer();
@@ -60,9 +59,6 @@ export default function LibraryPage() {
       }}
     >
       <PageHeader title="Library" kicker="Stored offline on this device">
-        <Link href="/youtube" className="btn">
-          <LinkIcon className="h-4 w-4" /> YouTube
-        </Link>
         <button className="btn-neon" onClick={() => fileRef.current?.click()}>
           <Upload className="h-4 w-4" /> Import
         </button>
@@ -136,7 +132,7 @@ export default function LibraryPage() {
                   <div className="flex items-center gap-2 text-[11px] text-white/45">
                     <span>{formatTime(t.duration)}</span>
                     {t.bpm && <span className="text-cyan/80">{Math.round(t.bpm)} BPM</span>}
-                    <span className="rounded bg-white/5 px-1.5 py-px">{SOURCE_LABEL[t.source]}</span>
+                    <span className="rounded bg-white/5 px-1.5 py-px">{SOURCE_LABEL[t.source] ?? "Import"}</span>
                     <span className="hidden sm:inline">{(t.size / 1048576).toFixed(1)} MB</span>
                   </div>
                 </div>

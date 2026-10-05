@@ -1,4 +1,10 @@
 import * as dsp from "@/lib/audio/dsp";
+import * as spectral from "@/lib/audio/spectral";
+
+/** Noise fingerprint captured from a selection in the studio (used by Noise Reduction). */
+let noiseProfile: spectral.NoiseProfile | null = null;
+export const setNoiseProfile = (p: spectral.NoiseProfile | null) => (noiseProfile = p);
+export const hasNoiseProfile = () => noiseProfile !== null;
 
 export type NumParam = { key: string; label: string; min: number; max: number; step: number; def: number; fmt?: (v: number) => string };
 export type SelParam = { key: string; label: string; options: { value: string; label: string }[]; def: string };
@@ -10,7 +16,7 @@ export type ParamValues = Record<string, number | string>;
 export type Tool = {
   id: string;
   name: string;
-  group: "volume" | "time" | "fx" | "channels";
+  group: "volume" | "time" | "fx" | "repair" | "channels";
   desc: string;
   params?: Param[];
   /** true when the effect produces a tail (reverb/echo) that should spill over following audio */
@@ -57,6 +63,29 @@ export const TOOLS: Tool[] = [
     params: [{ key: "target", label: "Peak target", min: -12, max: 0, step: 0.1, def: -0.3, fmt: db }],
     run: (s, p) => dsp.normalize(s, n(p, "target")),
   },
+  {
+    id: "loudness",
+    name: "Loudness (LUFS)",
+    group: "volume",
+    desc: "Match streaming loudness, peaks limited",
+    params: [
+      { key: "lufs", label: "Target", min: -24, max: -6, step: 0.5, def: -14, fmt: (v) => `${v} LUFS` },
+      { key: "ceil", label: "Peak ceiling", min: -3, max: 0, step: 0.1, def: -1, fmt: db },
+    ],
+    run: (s, p) => spectral.loudnessNormalize(s, n(p, "lufs"), n(p, "ceil")),
+  },
+  {
+    id: "limiter",
+    name: "Limiter",
+    group: "volume",
+    desc: "Make louder without clipping",
+    params: [
+      { key: "gain", label: "Input gain", min: 0, max: 18, step: 0.5, def: 6, fmt: db },
+      { key: "ceil", label: "Ceiling", min: -6, max: 0, step: 0.1, def: -1, fmt: db },
+      { key: "release", label: "Release", min: 10, max: 500, step: 5, def: 80, fmt: (v) => `${v} ms` },
+    ],
+    run: (s, p) => spectral.limiter(s, n(p, "ceil"), n(p, "release"), n(p, "gain")),
+  },
   { id: "fadein", name: "Fade In", group: "volume", desc: "Ramp up from silence", params: [curveParam], run: (s, p) => dsp.fadeIn(s, p.curve as dsp.FadeCurve) },
   { id: "fadeout", name: "Fade Out", group: "volume", desc: "Ramp down to silence", params: [curveParam], run: (s, p) => dsp.fadeOut(s, p.curve as dsp.FadeCurve) },
   {
@@ -76,7 +105,7 @@ export const TOOLS: Tool[] = [
   {
     id: "gate",
     name: "Noise Gate",
-    group: "volume",
+    group: "repair",
     desc: "Silence background hiss between sounds",
     params: [
       { key: "threshold", label: "Threshold", min: -80, max: -10, step: 1, def: -45, fmt: db },
@@ -86,7 +115,7 @@ export const TOOLS: Tool[] = [
   },
   { id: "silence", name: "Silence", group: "volume", desc: "Mute the selection", run: (s) => dsp.silence(s) },
   { id: "invert", name: "Invert", group: "volume", desc: "Flip polarity", run: (s) => dsp.invert(s) },
-  { id: "dc", name: "Remove DC", group: "volume", desc: "Center the waveform", run: (s) => dsp.removeDC(s) },
+  { id: "dc", name: "Remove DC", group: "repair", desc: "Center the waveform", run: (s) => dsp.removeDC(s) },
 
   // ---------------- time & pitch ----------------
   {
@@ -168,7 +197,7 @@ export const TOOLS: Tool[] = [
   {
     id: "hum",
     name: "Hum Removal",
-    group: "fx",
+    group: "repair",
     desc: "Notch out mains hum + harmonics",
     params: [
       {
@@ -250,6 +279,52 @@ export const TOOLS: Tool[] = [
   },
   { id: "telephone", name: "Telephone", group: "fx", desc: "Narrow lo-fi radio voice", run: (s) => dsp.telephone(s) },
 
+  // ---------------- repair & vocals ----------------
+  {
+    id: "denoise",
+    name: "Noise Reduction",
+    group: "repair",
+    desc: "Remove hiss, hum and background noise",
+    params: [
+      { key: "reduction", label: "Reduction", min: 3, max: 40, step: 1, def: 18, fmt: (v) => `${v} dB` },
+      { key: "sensitivity", label: "Sensitivity", min: 1, max: 4, step: 0.1, def: 2.5, fmt: (v) => v.toFixed(1) },
+      { key: "smoothing", label: "Smoothing", min: 0, max: 0.95, step: 0.05, def: 0.6, fmt: pct },
+    ],
+    run: (s, p) => spectral.noiseReduce(s, noiseProfile, n(p, "reduction"), n(p, "sensitivity"), n(p, "smoothing")),
+  },
+  {
+    id: "vocalremove",
+    name: "Vocal Remover",
+    group: "repair",
+    desc: "Karaoke: remove centred vocals (stereo only)",
+    params: [
+      { key: "strength", label: "Strength", min: 0.2, max: 1, step: 0.05, def: 0.9, fmt: pct },
+      { key: "bass", label: "Keep bass below", min: 0, max: 400, step: 10, def: 140, fmt: hz },
+    ],
+    run: (s, p) => spectral.centerExtract(s, "remove", n(p, "strength"), n(p, "bass")),
+  },
+  {
+    id: "vocalisolate",
+    name: "Vocal Isolate",
+    group: "repair",
+    desc: "Keep only centred vocals (acapella, stereo only)",
+    params: [{ key: "strength", label: "Focus", min: 0.2, max: 1, step: 0.05, def: 0.7, fmt: pct }],
+    run: (s, p) => spectral.centerExtract(s, "isolate", n(p, "strength")),
+  },
+  {
+    id: "truncate",
+    name: "Truncate Silence",
+    group: "repair",
+    desc: "Shorten long pauses (podcasts, voice notes)",
+    resizes: true,
+    params: [
+      { key: "th", label: "Silence below", min: -70, max: -20, step: 1, def: -45, fmt: db },
+      { key: "min", label: "Pauses longer than", min: 0.2, max: 3, step: 0.1, def: 0.6, fmt: sec },
+      { key: "keep", label: "Shorten to", min: 0.05, max: 1, step: 0.05, def: 0.25, fmt: sec },
+    ],
+    run: (s, p) => spectral.truncateSilence(s, n(p, "th"), n(p, "min"), n(p, "keep")),
+  },
+
   // ---------------- channels ----------------
   { id: "mono", name: "Make Mono", group: "channels", desc: "Mix L+R to both sides", run: (s) => dsp.toMono(s) },
   { id: "stereo", name: "Make Stereo", group: "channels", desc: "Convert mono to two channels", run: (s) => dsp.toStereo(s) },
@@ -277,6 +352,7 @@ export const GROUPS = [
   { id: "volume", label: "Volume" },
   { id: "time", label: "Time & Pitch" },
   { id: "fx", label: "Effects" },
+  { id: "repair", label: "Repair & Vocals" },
   { id: "channels", label: "Channels" },
   { id: "generate", label: "Generate" },
 ] as const;

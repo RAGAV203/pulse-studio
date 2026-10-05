@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
-import { FolderOpen, Lock, Pause, Play, Repeat, X } from "lucide-react";
+import { FolderOpen, Lock, Pause, Play, Repeat, Sparkles, X } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { PeakStrip } from "@/components/PeakStrip";
 import { TrackPicker } from "@/components/TrackPicker";
@@ -238,6 +238,28 @@ function DeckPanel({ id }: { id: DeckId }) {
                   </button>
                 );
               })}
+            </div>
+          </div>
+          <div>
+            <div className="label mb-1.5 flex items-center gap-1.5">
+              <Sparkles className="h-3 w-3" /> Beat FX
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="grid flex-1 grid-cols-4 gap-1.5">
+                {(["none", "echo", "flanger", "reverb"] as const).map((fx) => (
+                  <button
+                    key={fx}
+                    className={`h-9 rounded-lg border text-[11px] font-bold capitalize transition-all active:scale-95 ${
+                      st.fx === fx ? "text-ink" : "border-white/10 bg-white/[0.03]"
+                    }`}
+                    style={st.fx === fx ? { background: fx === "none" ? "#ffffffcc" : accent, borderColor: accent, boxShadow: `0 0 14px -4px ${accent}` } : undefined}
+                    onClick={() => patch(id, { fx })}
+                  >
+                    {fx === "none" ? "Off" : fx}
+                  </button>
+                ))}
+              </div>
+              <Knob value={st.fxAmount} min={0} max={1} bipolar={false} size={40} color={accent} onChange={(v) => patch(id, { fxAmount: v })} defaultValue={0.5} />
             </div>
           </div>
         </div>

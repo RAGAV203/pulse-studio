@@ -1,31 +1,88 @@
 {
   "name": "Pulse Studio",
   "short_name": "Pulse",
-  "description": "Offline DJ studio: audio editor, decks, equalizer, audio modes and visualizer.",
+  "description": "Offline DJ studio: audio editor, decks, pads, equalizer, audio modes, tools and visualizer.",
   "id": "/",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "display_override": ["window-controls-overlay", "standalone"],
+  "display_override": [
+    "window-controls-overlay",
+    "standalone"
+  ],
   "orientation": "any",
   "background_color": "#05050b",
   "theme_color": "#05050b",
-  "categories": ["music", "entertainment", "productivity"],
+  "categories": [
+    "music",
+    "entertainment",
+    "productivity"
+  ],
   "icons": [
-    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
-    { "src": "/icons/icon.svg", "sizes": "any", "type": "image/svg+xml" }
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
   ],
   "shortcuts": [
-    { "name": "Studio", "url": "/studio", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
-    { "name": "DJ Decks", "url": "/decks", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
-    { "name": "Equalizer", "url": "/eq", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] }
-  ],
-  "share_target": {
-    "action": "/youtube",
-    "method": "GET",
-    "enctype": "application/x-www-form-urlencoded",
-    "params": { "url": "url", "text": "text" }
-  }
+    {
+      "name": "Studio",
+      "url": "/studio",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "DJ Decks",
+      "url": "/decks",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Equalizer",
+      "url": "/eq",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Pads",
+      "url": "/pads",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ]
 }

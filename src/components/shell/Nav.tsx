@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "motion/react";
-import { AudioWaveform, Disc3, House, Library, Link as LinkIcon, SlidersVertical, Sparkles } from "lucide-react";
+import { AudioWaveform, Disc3, House, Gauge, Grid3x3, Library, SlidersVertical, Sparkles } from "lucide-react";
 
 export const NAV = [
   { href: "/", label: "Home", icon: House },
@@ -11,7 +11,8 @@ export const NAV = [
   { href: "/eq", label: "EQ", icon: SlidersVertical },
   { href: "/visualizer", label: "Visuals", icon: Sparkles },
   { href: "/library", label: "Library", icon: Library },
-  { href: "/youtube", label: "Grab", icon: LinkIcon },
+  { href: "/pads", label: "Pads", icon: Grid3x3 },
+  { href: "/tools", label: "Tools", icon: Gauge },
 ];
 
 const active = (path: string, href: string) => (href === "/" ? path === "/" : path.startsWith(href));
@@ -47,7 +48,7 @@ export function BottomNav() {
   const path = usePathname();
   return (
     <nav className="glass pb-safe fixed inset-x-0 bottom-0 z-40 rounded-t-3xl md:hidden">
-      <div className="grid grid-cols-7 px-1 pt-1.5 pb-1">
+      <div className="grid grid-cols-8 px-1 pt-1.5 pb-1">
         {NAV.map(({ href, label, icon: Icon }) => {
           const on = active(path, href);
           return (

@@ -2,8 +2,6 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  // YouTube.js is loaded as a normal Node dependency instead of being bundled.
-  serverExternalPackages: ["youtubei.js"],
   async headers() {
     return [
       {

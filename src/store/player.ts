@@ -14,6 +14,11 @@ type PlayerState = {
   duration: number;
   repeat: Repeat;
   shuffle: boolean;
+  speed: number;
+  /** epoch ms when playback should stop, "end" = after the current track, null = off */
+  sleep: number | "end" | null;
+  setSpeed: (r: number) => void;
+  setSleep: (minutes: number | "end" | null) => void;
   refresh: () => Promise<void>;
   play: (id?: string) => Promise<void>;
   toggle: () => Promise<void>;
@@ -38,11 +43,22 @@ function bind(eng: AudioEngine) {
   el.addEventListener("timeupdate", () => {
     usePlayer.setState({ time: el.currentTime });
     updatePosition(el);
+    const sl = st().sleep;
+    if (typeof sl === "number" && Date.now() >= sl) void sleepNow(eng);
+  });
+  // playbackRate resets when a new source loads
+  el.addEventListener("loadedmetadata", () => {
+    el.playbackRate = st().speed;
+    el.preservesPitch = true;
   });
   el.addEventListener("loadedmetadata", () => usePlayer.setState({ duration: el.duration }));
   el.addEventListener("play", () => usePlayer.setState({ playing: true }));
   el.addEventListener("pause", () => usePlayer.setState({ playing: false }));
   el.addEventListener("ended", () => {
+    if (st().sleep === "end") {
+      usePlayer.setState({ sleep: null, playing: false });
+      return;
+    }
     if (st().repeat === "one") {
       el.currentTime = 0;
       void el.play();
@@ -68,6 +84,20 @@ function bind(eng: AudioEngine) {
   });
 }
 
+/** Fade out over 4 s, then pause (sleep timer). */
+async function sleepNow(eng: AudioEngine) {
+  usePlayer.setState({ sleep: null });
+  const g = eng.master.gain;
+  const now = eng.ctx.currentTime;
+  const v = g.value;
+  g.setValueAtTime(v, now);
+  g.linearRampToValueAtTime(0.0001, now + 4);
+  await new Promise((r) => setTimeout(r, 4100));
+  eng.mediaEl.pause();
+  g.cancelScheduledValues(eng.ctx.currentTime);
+  g.setValueAtTime(v, eng.ctx.currentTime);
+}
+
 function updatePosition(el: HTMLAudioElement) {
   if (!navigator.mediaSession?.setPositionState || !isFinite(el.duration)) return;
   try {
@@ -88,6 +118,16 @@ export const usePlayer = create<PlayerState>()((set, get) => ({
   duration: 0,
   repeat: "off",
   shuffle: false,
+  speed: 1,
+  sleep: null,
+
+  setSpeed: (r) => {
+    set({ speed: r });
+    const el = getEngine().mediaEl;
+    el.preservesPitch = true;
+    el.playbackRate = r;
+  },
+  setSleep: (m) => set({ sleep: m === null || m === "end" ? m : Date.now() + m * 60_000 }),
 
   refresh: async () => {
     set({ tracks: await listTracks(), loaded: true });

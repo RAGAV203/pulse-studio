@@ -1,6 +1,6 @@
 "use client";
 import { create } from "zustand";
-import { Deck } from "@/lib/audio/deck";
+import { Deck, type DeckFx } from "@/lib/audio/deck";
 import { getEngine } from "@/lib/audio/engine";
 import { getTrack } from "@/lib/db";
 
@@ -24,6 +24,8 @@ export type DeckState = {
   cue: number;
   hotCues: (number | null)[];
   loop: { start: number; end: number } | null;
+  fx: DeckFx;
+  fxAmount: number;
 };
 
 const initialDeck = (): DeckState => ({
@@ -44,6 +46,8 @@ const initialDeck = (): DeckState => ({
   cue: 0,
   hotCues: [null, null, null, null],
   loop: null,
+  fx: "none",
+  fxAmount: 0.5,
 });
 
 type DecksStore = {
@@ -97,6 +101,7 @@ function applyDeck(id: DeckId) {
   d.setFilter(s.filter);
   d.setVolume(s.volume);
   d.setRate(1 + s.pitch, s.keyLock);
+  d.setFx(s.fx, s.fxAmount, s.bpm ? s.bpm * (1 + s.pitch) : null);
 }
 
 /** Constant-power crossfade curve. */
@@ -106,7 +111,7 @@ function applyCrossfader() {
   instances.B?.setXfade(Math.sin((x * Math.PI) / 2));
 }
 
-const AUDIO_KEYS = ["low", "mid", "high", "filter", "volume", "pitch", "keyLock"];
+const AUDIO_KEYS = ["low", "mid", "high", "filter", "volume", "pitch", "keyLock", "fx", "fxAmount", "bpm"];
 
 export const useDecks = create<DecksStore>()((set, get) => ({
   A: initialDeck(),

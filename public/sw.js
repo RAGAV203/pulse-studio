@@ -1,9 +1,9 @@
 /* Pulse Studio service worker — makes the whole app work offline. */
-const VERSION = "pulse-v1";
+const VERSION = "pulse-v2";
 const SHELL = `${VERSION}-shell`;
 const RUNTIME = `${VERSION}-runtime`;
 
-const ROUTES = ["/", "/studio", "/decks", "/eq", "/visualizer", "/library", "/youtube"];
+const ROUTES = ["/", "/studio", "/decks", "/eq", "/visualizer", "/library", "/pads", "/tools"];
 const STATIC = ["/manifest.webmanifest", "/icons/icon.svg", "/icons/icon-192.png", "/icons/icon-512.png", "/icons/apple-touch-icon.png"];
 
 /** Fetch each page and pre-cache every /_next/static asset it references, so pages open offline even if never visited. */
@@ -48,8 +48,8 @@ self.addEventListener("fetch", (event) => {
   if (req.method !== "GET") return;
   const url = new URL(req.url);
 
-  // YouTube API & cross-origin requests always go to the network.
-  if (url.origin !== self.location.origin || url.pathname.startsWith("/api/")) return;
+  // Cross-origin requests always go to the network.
+  if (url.origin !== self.location.origin) return;
 
   // Next.js RSC payloads: network only. On failure Next falls back to a full navigation, which we serve from cache.
   if (req.headers.get("RSC") === "1" || url.searchParams.has("_rsc")) {

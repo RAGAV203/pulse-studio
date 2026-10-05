@@ -1,6 +1,6 @@
 /** Tiny promise wrapper around IndexedDB for the offline track library. */
 
-export type TrackSource = "file" | "youtube" | "studio" | "recording";
+export type TrackSource = "file" | "studio" | "recording" | "pads";
 
 export type Track = {
   id: string;

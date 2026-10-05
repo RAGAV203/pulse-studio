@@ -43,7 +43,9 @@ import { decodeBlob, importBlob, stripExt } from "@/lib/library";
 import { usePlayer } from "@/store/player";
 import { useStudio, type Sel } from "@/store/studio";
 import { RecordModal } from "./RecordModal";
-import { defaults, generate, GROUPS, isSelect, TOOLS, type GroupId, type ParamValues, type Tool } from "./tools";
+import { defaults, generate, GROUPS, hasNoiseProfile, isSelect, setNoiseProfile, TOOLS, type GroupId, type ParamValues, type Tool } from "./tools";
+import { captureNoiseProfile } from "@/lib/audio/spectral";
+import { encodeMp3 } from "@/lib/audio/mp3";
 import { Waveform } from "./Waveform";
 
 type Playing = { src: AudioBufferSourceNode; startedAt: number; offset: number; end: number; loop: boolean; origin: number; loopLen: number };
@@ -67,6 +69,7 @@ export default function Studio() {
   const [recOpen, setRecOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [silenceSec, setSilenceSec] = useState(1);
+  const [profileSet, setProfileSet] = useState(hasNoiseProfile);
   const fileRef = useRef<HTMLInputElement>(null);
   const playRef = useRef<Playing | null>(null);
 
@@ -521,6 +524,34 @@ export default function Studio() {
                         )}
                       </div>
                     )}
+                    {tool.id === "denoise" && (
+                      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-white/5 bg-white/[0.02] p-3 text-xs text-white/60">
+                        <span className="flex-1">
+                          {profileSet
+                            ? "Using the noise profile you captured."
+                            : "Tip: select a few seconds of pure background noise and tap Learn noise for best results. Otherwise the quietest parts are used automatically."}
+                        </span>
+                        <button
+                          className="btn py-1.5 text-xs"
+                          disabled={!selection}
+                          onClick={() =>
+                            void run("Learning noise…", () => {
+                              setNoiseProfile(captureNoiseProfile(dsp.slice(buffer, selS(selection)!)));
+                              setProfileSet(true);
+                              st.setSelection(null);
+                              flash("Noise profile captured. Now select what to clean (or nothing for whole file).");
+                            })
+                          }
+                        >
+                          Learn noise from selection
+                        </button>
+                        {profileSet && (
+                          <button className="btn py-1.5 text-xs" onClick={() => (setNoiseProfile(null), setProfileSet(false))}>
+                            Use auto
+                          </button>
+                        )}
+                      </div>
+                    )}
                     <div className="flex flex-wrap gap-2">
                       <button className="btn" onClick={() => void previewTool(tool, vals)}>
                         <Play className="h-4 w-4" /> Preview
@@ -721,21 +752,43 @@ function GeneratePanel({ sampleRate, channels, onInsert }: { sampleRate: number;
   );
 }
 
+type ExportFormat = "wav16" | "wav24" | "wav32" | "mp3-128" | "mp3-192" | "mp3-320";
+const FORMATS: { id: ExportFormat; label: string }[] = [
+  { id: "mp3-128", label: "MP3 128k" },
+  { id: "mp3-192", label: "MP3 192k" },
+  { id: "mp3-320", label: "MP3 320k" },
+  { id: "wav16", label: "WAV 16-bit" },
+  { id: "wav24", label: "WAV 24-bit" },
+  { id: "wav32", label: "WAV 32f" },
+];
+
 function ExportModal({ open, onClose, buffer, name, selection }: { open: boolean; onClose: () => void; buffer: AudioBuffer; name: string; selection: Sel | null }) {
-  const [depth, setDepth] = useState<16 | 24 | 32>(16);
+  const [fmt, setFmt] = useState<ExportFormat>("mp3-192");
   const [onlySel, setOnlySel] = useState(false);
   const [fname, setFname] = useState(name);
+  const [progress, setProgress] = useState<number | null>(null);
   useEffect(() => setFname(name), [name, open]);
 
-  const build = () => {
+  const build = async () => {
     const src = onlySel && selection ? dsp.slice(buffer, { start: Math.round(selection.start * buffer.sampleRate), end: Math.round(selection.end * buffer.sampleRate) }) : buffer;
-    const blob = dsp.encodeWav(src, depth);
-    return new File([blob], `${fname || "export"}.wav`, { type: "audio/wav" });
+    if (fmt.startsWith("mp3")) {
+      setProgress(0);
+      try {
+        const blob = await encodeMp3(src, Number(fmt.split("-")[1]), setProgress);
+        return new File([blob], `${fname || "export"}.mp3`, { type: "audio/mpeg" });
+      } finally {
+        setProgress(null);
+      }
+    }
+    const depth = Number(fmt.slice(3)) as 16 | 24 | 32;
+    return new File([dsp.encodeWav(src, depth)], `${fname || "export"}.wav`, { type: "audio/wav" });
   };
   const [canShare, setCanShare] = useState(false);
   useEffect(() => setCanShare(!!navigator.canShare), []);
   const dur = onlySel && selection ? selection.end - selection.start : buffer.duration;
-  const size = (dur * buffer.sampleRate * buffer.numberOfChannels * (depth / 8)) / 1048576;
+  const size = fmt.startsWith("mp3")
+    ? (dur * Number(fmt.split("-")[1]) * 1000) / 8 / 1048576
+    : (dur * buffer.sampleRate * buffer.numberOfChannels * (Number(fmt.slice(3)) / 8)) / 1048576;
 
   return (
     <Modal open={open} onClose={onClose} title="Export audio">
@@ -747,9 +800,9 @@ function ExportModal({ open, onClose, buffer, name, selection }: { open: boolean
         <div>
           <span className="label">Format</span>
           <div className="mt-1 grid grid-cols-3 gap-2">
-            {([16, 24, 32] as const).map((d) => (
-              <button key={d} className="chip py-2.5" data-active={depth === d} onClick={() => setDepth(d)}>
-                WAV {d === 32 ? "32f" : d}-bit
+            {FORMATS.map((f) => (
+              <button key={f.id} className="chip py-2.5" data-active={fmt === f.id} onClick={() => setFmt(f.id)}>
+                {f.label}
               </button>
             ))}
           </div>
@@ -762,11 +815,17 @@ function ExportModal({ open, onClose, buffer, name, selection }: { open: boolean
         <div className="text-xs text-white/50">
           {dsp.formatTime(dur, true)} · ≈ {size.toFixed(1)} MB
         </div>
+        {progress !== null && (
+          <div className="h-1.5 overflow-hidden rounded-full bg-white/5">
+            <div className="h-full bg-gradient-to-r from-cyan via-violet to-pink transition-[width]" style={{ width: `${progress * 100}%` }} />
+          </div>
+        )}
         <div className="flex gap-2">
           <button
             className="btn-neon flex-1 py-3"
-            onClick={() => {
-              const f = build();
+            disabled={progress !== null}
+            onClick={async () => {
+              const f = await build();
               const a = document.createElement("a");
               a.href = URL.createObjectURL(f);
               a.download = f.name;
@@ -775,13 +834,14 @@ function ExportModal({ open, onClose, buffer, name, selection }: { open: boolean
               onClose();
             }}
           >
-            <Download className="h-4 w-4" /> Download
+            <Download className="h-4 w-4" /> {progress !== null ? `Encoding ${Math.round(progress * 100)}%` : "Download"}
           </button>
           {canShare && (
             <button
               className="btn flex-1 py-3"
+              disabled={progress !== null}
               onClick={async () => {
-                const f = build();
+                const f = await build();
                 if (navigator.canShare({ files: [f] })) await navigator.share({ files: [f], title: f.name }).catch(() => {});
               }}
             >

@@ -1,7 +1,11 @@
+import { makeImpulse } from "./dsp";
 import { getEngine } from "./engine";
 
+export type DeckFx = "none" | "echo" | "flanger" | "reverb";
+
 /**
- * One DJ deck: <audio> element ─▶ 3-band kill EQ ─▶ sweep filter ─▶ channel fader ─▶ crossfader gain ─▶ engine.input
+ * One DJ deck: <audio> element ─▶ 3-band kill EQ ─▶ sweep filter ─┬▶ channel fader ─▶ crossfader gain ─▶ engine.input
+ *                                                                 └▶ beat FX (echo | flanger | reverb) ─┘
  */
 export class Deck {
   readonly el: HTMLAudioElement;
@@ -14,6 +18,9 @@ export class Deck {
   private fader: GainNode;
   readonly xfade: GainNode;
   private url: string | null = null;
+  private echo: { send: GainNode; delay: DelayNode; wet: GainNode };
+  private flanger: { send: GainNode; wet: GainNode };
+  private reverb: { send: GainNode; conv: ConvolverNode; wet: GainNode; on: boolean };
 
   constructor() {
     const eng = getEngine();
@@ -41,6 +48,63 @@ export class Deck {
     src.connect(this.low).connect(this.mid).connect(this.high).connect(this.lpf).connect(this.hpf).connect(this.fader);
     this.fader.connect(this.analyser);
     this.fader.connect(this.xfade).connect(eng.input);
+
+    // ---- beat FX (sends from the post-filter signal, returns into the channel fader)
+    const echoSend = ctx.createGain();
+    const delay = ctx.createDelay(4);
+    const fb = ctx.createGain();
+    fb.gain.value = 0.45;
+    const tone = mk("lowpass", 4500);
+    const echoWet = ctx.createGain();
+    echoSend.gain.value = 0;
+    this.hpf.connect(echoSend).connect(delay);
+    delay.connect(tone).connect(fb).connect(delay);
+    delay.connect(echoWet).connect(this.fader);
+    this.echo = { send: echoSend, delay, wet: echoWet };
+
+    const flSend = ctx.createGain();
+    flSend.gain.value = 0;
+    const flDelay = ctx.createDelay(0.05);
+    flDelay.delayTime.value = 0.004;
+    const lfo = ctx.createOscillator();
+    lfo.frequency.value = 0.22;
+    const depth = ctx.createGain();
+    depth.gain.value = 0.0032;
+    lfo.connect(depth).connect(flDelay.delayTime);
+    lfo.start();
+    const flFb = ctx.createGain();
+    flFb.gain.value = 0.6;
+    const flWet = ctx.createGain();
+    this.hpf.connect(flSend).connect(flDelay);
+    flDelay.connect(flFb).connect(flDelay);
+    flDelay.connect(flWet).connect(this.fader);
+    this.flanger = { send: flSend, wet: flWet };
+
+    const rvSend = ctx.createGain();
+    const conv = ctx.createConvolver();
+    conv.buffer = makeImpulse(ctx, 2.6, 2.8);
+    const rvWet = ctx.createGain();
+    rvSend.connect(conv).connect(rvWet).connect(this.fader);
+    this.reverb = { send: rvSend, conv, wet: rvWet, on: false };
+  }
+
+  /** Select a beat FX and its wet amount (0..1). Echo time follows the tempo (¾ beat). */
+  setFx(kind: DeckFx, amount: number, bpm: number | null) {
+    const beat = bpm ? 60 / bpm : 0.5;
+    this.set(this.echo.delay.delayTime, Math.min(3.9, beat * 0.75));
+    this.set(this.echo.send.gain, kind === "echo" ? 1 : 0);
+    this.set(this.echo.wet.gain, kind === "echo" ? amount : 0);
+    this.set(this.flanger.send.gain, kind === "flanger" ? 1 : 0);
+    this.set(this.flanger.wet.gain, kind === "flanger" ? amount : 0);
+    this.set(this.reverb.wet.gain, kind === "reverb" ? amount * 1.2 : 0);
+    // only run the convolver while reverb is selected (saves CPU on phones)
+    if (kind === "reverb" && !this.reverb.on) {
+      this.hpf.connect(this.reverb.send);
+      this.reverb.on = true;
+    } else if (kind !== "reverb" && this.reverb.on) {
+      this.hpf.disconnect(this.reverb.send);
+      this.reverb.on = false;
+    }
   }
 
   load(blob: Blob) {
