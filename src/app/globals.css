@@ -1,0 +1,237 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #05050b;
+  --color-ink-2: #0b0b18;
+  --color-cyan: #00f0ff;
+  --color-pink: #ff2bd6;
+  --color-violet: #8b5cf6;
+  --color-lime: #b6ff3b;
+  --color-amber: #ffb02e;
+  --font-display: var(--font-orbitron), ui-sans-serif, system-ui;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui;
+  --animate-spin-slow: spin 6s linear infinite;
+  --animate-float: float 14s ease-in-out infinite;
+  --animate-glow: glow 2.4s ease-in-out infinite;
+}
+
+:root {
+  color-scheme: dark;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top: env(safe-area-inset-top, 0px);
+}
+
+html,
+body {
+  background: var(--color-ink);
+  color: #e8ecff;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  min-height: 100dvh;
+  font-family: var(--font-sans);
+}
+
+::selection {
+  background: color-mix(in oklab, var(--color-pink) 45%, transparent);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #2a2a44 transparent;
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  33% {
+    transform: translate3d(6vw, -4vh, 0) scale(1.1);
+  }
+  66% {
+    transform: translate3d(-5vw, 5vh, 0) scale(0.95);
+  }
+}
+
+@keyframes glow {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes grid-move {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 0 48px;
+  }
+}
+
+@keyframes shimmer {
+  from {
+    background-position: -200% 0;
+  }
+  to {
+    background-position: 200% 0;
+  }
+}
+
+@utility glass {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 10px 40px -12px rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+}
+
+@utility panel {
+  @apply glass rounded-2xl;
+}
+
+@utility neon-text {
+  background: linear-gradient(90deg, var(--color-cyan), var(--color-violet), var(--color-pink));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+@utility neon-ring {
+  box-shadow:
+    0 0 0 1px color-mix(in oklab, var(--color-cyan) 60%, transparent),
+    0 0 24px -4px color-mix(in oklab, var(--color-cyan) 70%, transparent);
+}
+
+@utility grid-floor {
+  background-image:
+    linear-gradient(rgba(0, 240, 255, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 240, 255, 0.07) 1px, transparent 1px);
+  background-size: 48px 48px;
+  animation: grid-move 3s linear infinite;
+  mask-image: linear-gradient(to top, black 0%, transparent 75%);
+}
+
+@utility btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-xl px-3.5 py-2 text-sm font-medium transition-all select-none active:scale-95 disabled:pointer-events-none disabled:opacity-40;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.18);
+  }
+}
+
+@utility btn-neon {
+  @apply btn font-semibold text-ink;
+  background: linear-gradient(135deg, var(--color-cyan), var(--color-violet) 55%, var(--color-pink));
+  border-color: transparent;
+  box-shadow: 0 8px 30px -8px color-mix(in oklab, var(--color-violet) 80%, transparent);
+  &:hover {
+    filter: brightness(1.12);
+    background: linear-gradient(135deg, var(--color-cyan), var(--color-violet) 55%, var(--color-pink));
+  }
+}
+
+@utility btn-icon {
+  @apply btn h-10 w-10 p-0;
+}
+
+@utility chip {
+  @apply rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all active:scale-95;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  &[data-active="true"] {
+    color: var(--color-ink);
+    background: linear-gradient(135deg, var(--color-cyan), var(--color-pink));
+    border-color: transparent;
+    box-shadow: 0 0 18px -4px var(--color-cyan);
+  }
+}
+
+@utility label {
+  @apply text-[10px] font-semibold tracking-[0.2em] text-white/45 uppercase;
+}
+
+@utility input {
+  @apply w-full rounded-xl px-4 py-3 text-sm outline-none transition-all;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  &:focus {
+    border-color: var(--color-cyan);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-cyan) 20%, transparent);
+  }
+}
+
+@utility shimmer {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.12), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
+.range {
+  width: 100%;
+  cursor: pointer;
+  appearance: none;
+  background: transparent;
+  height: 22px;
+}
+.range::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 99px;
+  background: linear-gradient(90deg, var(--color-cyan) var(--p, 50%), rgba(255, 255, 255, 0.12) var(--p, 50%));
+}
+.range::-moz-range-track {
+  height: 4px;
+  border-radius: 99px;
+  background: linear-gradient(90deg, var(--color-cyan) var(--p, 50%), rgba(255, 255, 255, 0.12) var(--p, 50%));
+}
+.range::-webkit-slider-thumb {
+  appearance: none;
+  margin-top: -6px;
+  height: 16px;
+  width: 16px;
+  border-radius: 99px;
+  background: white;
+  box-shadow: 0 0 12px var(--color-cyan);
+}
+.range::-moz-range-thumb {
+  height: 16px;
+  width: 16px;
+  border: 0;
+  border-radius: 99px;
+  background: white;
+  box-shadow: 0 0 12px var(--color-cyan);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+.pb-safe {
+  padding-bottom: var(--safe-bottom);
+}
+.pt-safe {
+  padding-top: var(--safe-top);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
