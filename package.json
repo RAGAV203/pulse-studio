@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "prebuild": "node scripts/get-yt-dlp.mjs --auto",
     "build": "next build",
     "start": "next start",
     "lint": "tsc --noEmit",

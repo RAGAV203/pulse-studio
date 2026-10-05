@@ -31,7 +31,20 @@ PWAs need **HTTPS** (localhost is the only exception). Deploy the app, or tunnel
 
 ### Deploying
 
-The YouTube route spawns `yt-dlp`, so it needs a Node server that can run a binary. A VPS, Docker, Railway, Fly.io or Render all work; Vercel serverless functions do not. Set `YTDLP_PATH` if the binary lives somewhere other than `./bin` or your `PATH`. Run `npm run setup:ytdlp` occasionally, because YouTube changes often and yt-dlp updates to keep up.
+**Vercel:** works out of the box. On every Vercel build, the `prebuild` step downloads the latest checksum-verified Linux `yt-dlp` into `bin/`, and `next.config.ts` bundles it into the YouTube API functions. Each redeploy picks up the newest yt-dlp, so redeploy if YouTube extraction starts failing.
+
+YouTube sometimes blocks data-centre IPs (Vercel runs on AWS) with *"Sign in to confirm you're not a bot"*. When that happens:
+
+1. Use a **throwaway Google account** (not your main one) and log in to youtube.com in a browser.
+2. Export its cookies in Netscape format, e.g. with the "Get cookies.txt LOCALLY" extension.
+3. In Vercel → Project → Settings → Environment Variables, add `YTDLP_COOKIES` containing the file contents (or base64 of them), then redeploy.
+
+**Other hosts** (VPS, Docker, Railway, Fly.io, Render): run `npm run setup:ytdlp` once, or set `YTDLP_PATH` to an existing binary.
+
+| Env var | Purpose |
+| --- | --- |
+| `YTDLP_COOKIES` | Optional cookies to get past YouTube's bot check |
+| `YTDLP_PATH` | Optional path to a yt-dlp binary |
 
 Every other feature is client-only, so the rest of the app works from any static host if you remove `src/app/api`.
 
