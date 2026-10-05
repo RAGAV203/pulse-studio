@@ -2,11 +2,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  // yt-dlp is spawned as a child process; ship the binary (downloaded by `prebuild` on Vercel)
-  // inside the YouTube API functions, since file tracing can't see a spawned executable.
-  outputFileTracingIncludes: {
-    "/api/youtube/**": ["./bin/yt-dlp"],
-  },
+  // YouTube.js is loaded as a normal Node dependency instead of being bundled.
+  serverExternalPackages: ["youtubei.js"],
   async headers() {
     return [
       {

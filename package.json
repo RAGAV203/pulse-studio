@@ -4,12 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "prebuild": "node scripts/get-yt-dlp.mjs --auto",
     "build": "next build",
     "start": "next start",
     "lint": "tsc --noEmit",
-    "icons": "node scripts/gen-icons.mjs",
-    "setup:ytdlp": "node scripts/get-yt-dlp.mjs"
+    "icons": "node scripts/gen-icons.mjs"
   },
   "dependencies": {
     "lucide-react": "^1.52.0",
@@ -18,6 +16,7 @@
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "server-only": "^0.0.1",
+    "youtubei.js": "^18.1.0",
     "zustand": "^5.0.15"
   },
   "devDependencies": {

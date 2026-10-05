@@ -1,10 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { streamAudio, YtError } from "@/lib/server/ytdlp";
+import { streamAudio, YtError } from "@/lib/server/youtube-extract";
 import { isValidVideoId } from "@/lib/youtube";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-// 60 s is allowed on every Vercel plan; a ≤ 6 min audio stream (~6 MB) downloads well within it.
+// 60 s is allowed on every Vercel plan; a ≤ 6 min audio stream (~6 MB) downloads in a few seconds.
 export const maxDuration = 60;
 
 // Very small in-process guard so one client cannot start dozens of extractions.
@@ -51,6 +51,7 @@ export async function GET(req: NextRequest) {
   } catch (e) {
     release();
     const status = e instanceof YtError ? e.status : 500;
-    return NextResponse.json({ error: (e as Error).message }, { status });
+    console.error("[youtube audio]", e);
+    return NextResponse.json({ error: e instanceof YtError ? e.message : "Could not fetch the audio." }, { status });
   }
 }

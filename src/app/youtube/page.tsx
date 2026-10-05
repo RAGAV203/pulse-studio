@@ -259,7 +259,7 @@ export default function YouTubePage() {
       <section className="panel flex gap-3 p-4 text-xs leading-relaxed text-white/55">
         <ShieldCheck className="h-5 w-5 shrink-0 text-cyan" />
         <p>
-          Links are validated on your device and again on the server. Extraction uses the open-source <b className="text-white/80">yt-dlp</b> project and only the
+          Links are validated on your device and again on the server. Extraction uses the open-source <b className="text-white/80">YouTube.js</b> library and only the
           raw audio stream is fetched. Decoding, analysis and storage happen locally on your device. Only download content you own or have permission to use, and
           respect YouTube&apos;s Terms of Service and copyright.
         </p>

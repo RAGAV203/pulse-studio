@@ -9,13 +9,12 @@ An offline, installable (PWA) DJ studio for iOS and Android, built with Next.js 
 | **EQ & Audio modes** | 10-band EQ + preamp with a live response curve over the spectrum, 14 presets, enhancers (Bass Engine, 3D Surround, Night Mode, Concert Hall, Vocal Clarity, Loudness) and one-tap profiles (DJ Booth, Cinema, Party, Podcast…). Settings persist. |
 | **Visualizer** | Bars, Radial, Wave, Galaxy, Spectrogram, Tunnel; 5 palettes, sensitivity, auto-cycle, fullscreen. Sources: app audio, microphone, or another browser tab (desktop only). |
 | **Library** | Import audio *or video* files (the audio is extracted). Everything is stored in IndexedDB on the device and plays offline, with lock-screen, headset and car controls via the Media Session API. |
-| **YouTube Grab** | Validates the link (client and server), rejects videos over 6 minutes and live streams, fetches only the audio stream via yt-dlp, then decodes, analyses and stores it on the device. **The only feature that needs internet.** |
+| **YouTube Grab** | Validates the link (client and server), rejects videos over 6 minutes and live streams, fetches only the audio stream via [YouTube.js](https://github.com/LuanRT/YouTube.js) (pure JavaScript, works on Vercel), then decodes, analyses and stores it on the device. **The only feature that needs internet.** |
 
 ## Run it
 
 ```bash
 npm install
-npm run setup:ytdlp   # downloads the official yt-dlp binary into ./bin (SHA-256 verified)
 npm run build
 npm start             # http://localhost:3000
 ```
@@ -31,20 +30,13 @@ PWAs need **HTTPS** (localhost is the only exception). Deploy the app, or tunnel
 
 ### Deploying
 
-**Vercel:** works out of the box. On every Vercel build, the `prebuild` step downloads the latest checksum-verified Linux `yt-dlp` into `bin/`, and `next.config.ts` bundles it into the YouTube API functions. Each redeploy picks up the newest yt-dlp, so redeploy if YouTube extraction starts failing.
-
-YouTube sometimes blocks data-centre IPs (Vercel runs on AWS) with *"Sign in to confirm you're not a bot"*. When that happens:
-
-1. Use a **throwaway Google account** (not your main one) and log in to youtube.com in a browser.
-2. Export its cookies in Netscape format, e.g. with the "Get cookies.txt LOCALLY" extension.
-3. In Vercel → Project → Settings → Environment Variables, add `YTDLP_COOKIES` containing the file contents (or base64 of them), then redeploy.
-
-**Other hosts** (VPS, Docker, Railway, Fly.io, Render): run `npm run setup:ytdlp` once, or set `YTDLP_PATH` to an existing binary.
+Deploy anywhere that runs Next.js, **including Vercel** (no extra setup). YouTube Grab uses YouTube.js, a pure-JavaScript library, so there's no binary to install. It tries several YouTube client types in turn (iOS first, which needs no deciphering) and falls back automatically if YouTube rejects one.
 
 | Env var | Purpose |
 | --- | --- |
-| `YTDLP_COOKIES` | Optional cookies to get past YouTube's bot check |
-| `YTDLP_PATH` | Optional path to a yt-dlp binary |
+| `YOUTUBE_COOKIE` | Optional. A YouTube `Cookie` header from a throwaway signed-in account, only needed if YouTube starts refusing requests from your host. |
+
+Keep `youtubei.js` up to date (`npm update youtubei.js`) and redeploy if extraction starts failing; YouTube changes often.
 
 Every other feature is client-only, so the rest of the app works from any static host if you remove `src/app/api`.
 
@@ -62,9 +54,9 @@ Downloading from YouTube may conflict with YouTube's Terms of Service. Only grab
 src/lib/audio/dsp.ts       offline DSP: edits, effects, WSOLA stretch, pitch shift, BPM, WAV encoder
 src/lib/audio/engine.ts    live graph: EQ → modes → widener → night comp → hall reverb → master/analysers
 src/lib/audio/deck.ts      DJ deck channel strip
-src/lib/server/ytdlp.ts    yt-dlp wrapper (no shell; id-only canonical URLs; length re-checked server-side)
+src/lib/server/youtube-extract.ts  YouTube.js extraction (client fallback, sandboxed decipher, length + size re-checked server-side)
 src/app/api/youtube/*      info + audio stream routes
 src/store/*                zustand stores (settings, player, decks, studio)
 public/sw.js               service worker: precaches every route and its JS so the app opens offline
-scripts/                   icon generator, yt-dlp installer
+scripts/                   icon generator
 ```
